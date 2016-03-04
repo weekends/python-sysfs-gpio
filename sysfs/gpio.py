@@ -231,10 +231,10 @@ class Controller(object):
     '''
     A singleton class to provide access to SysFS GPIO pins
     '''
-
     def __new__(cls, *args, **kw):
         if not hasattr(cls, '_instance'):
-            instance = super(Controller, cls).__new__(cls, args, kw)
+            instance = super(Controller, cls).__new__(cls)
+
             instance._allocated_pins = {}
             instance._poll_queue = select.epoll()
 
@@ -271,7 +271,11 @@ class Controller(object):
     def stop(self):
         self._running = False
 
-        for pin in self._allocated_pins.copy().itervalues():
+        try:
+            pins = self._allocated_pins.copy().itervalues()
+        except AttributeError:
+            pins = self._allocated_pins.copy().values()
+        for pin in pins:
             self.dealloc_pin(pin.number)
 
     def alloc_pin(self, number, direction, callback=None, edge=None, active_low=0):
@@ -383,7 +387,11 @@ class Controller(object):
             if not (event & (select.EPOLLPRI | select.EPOLLET)):
                 continue
 
-            for pin in self._allocated_pins.itervalues():
+            try:
+                pins = self._allocated_pins.itervalues()
+            except AttributeError:
+                pins = self._allocated_pins.values()
+            for pin in pins:
                 if pin.fileno() == fd:
                     pin.changed(pin.read())
 
